@@ -1,0 +1,80 @@
+const express = require("express");
+const app = express();
+const cors = require("cors");
+const bodyParser = require("body-parser");
+require("dotenv").config();
+const { createAndSaveDoc, findEditThenSaveDoc } = require("./connection.js");
+const { User } = require("./models/users.js");
+
+app.use(cors());
+app.use(bodyParser.urlencoded({ extended: "false" }));
+app.use(bodyParser.json());
+app.use(express.static("public"));
+
+app.get("/", (req, res) => {
+  res.sendFile(__dirname + "/views/index.html");
+});
+
+app.post("/api/users", async (req, res) => {
+  let user = req.params.user;
+  try {
+    const doc = await createAndSaveDoc(
+      User,
+      { username: user },
+      (data) => data
+    );
+    res.json({
+      username: doc.username,
+      _id: doc._id,
+    });
+  } catch (err) {
+    res.json({ error: err.message });
+  }
+
+  try {
+    let newUser = new User({ username: user });
+    const doc = await User.save();
+    const { username, _id } = doc;
+    res.json({ username, _id });
+  } catch (err) {
+    res.json({ error: err.message });
+  }
+});
+
+app.post("/api/users/:_id/exercises", async (req, res) => {
+  const { _id: id, description, duration, date } = req.body;
+  const exercise = { description, duration, date };
+  try {
+    const doc = await findEditThenSaveDoc(
+      User,
+      id,
+      (user) => {
+        user.exerciseLog.push(exercise);
+      },
+      (data) => data
+    );
+    const { username, description, duration, date, _id } = { doc };
+    res.json({
+      username,
+      description,
+      duration,
+      date: date.toDateString(),
+      _id,
+    });
+  } catch (err) {
+    res.json({ error: err.message });
+  }
+});
+
+app.get("/api/users/:_id/logs?", async (req, res) => {
+  const { from, to, limit } = req.query;
+  try {
+    const doc = await find;
+  } catch (err) {
+    res.json({ error: err.message });
+  }
+});
+
+const listener = app.listen(process.env.PORT || 3000, () => {
+  console.log("Your app is listening on port " + listener.address().port);
+});
